@@ -62,6 +62,11 @@ __C.TEXT.CAPTIONS_PER_IMAGE = 10
 __C.TEXT.EMBEDDING_DIM = 256
 __C.TEXT.WORDS_NUM = 18
 
+__C.FEATURE_SYNTHESIS = edict()
+__C.FEATURE_SYNTHESIS.Z_DIM = 100
+__C.FEATURE_SYNTHESIS.H_DIM = 4096
+__C.FEATURE_SYNTHESIS.H_TEXT_DIM = 1000
+
 
 def _merge_a_into_b(a, b):
     """Merge config dictionary a into config dictionary b, clobbering the
