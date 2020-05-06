@@ -8,6 +8,7 @@ from torch.autograd import Variable
 import torch.backends.cudnn as cudnn
 
 from PIL import Image
+from tqdm import tqdm
 
 from miscc.config import cfg
 from miscc.utils import mkdir_p
@@ -240,8 +241,8 @@ class condGANTrainer(object):
             start_t = time.time()
 
             data_iter = iter(self.data_loader)
-            step = 0
-            while step < self.num_batches:
+
+            for step in tqdm(np.arange(0, self.num_batches)):
                 # reset requires_grad to be trainable for all Ds
                 # self.set_requires_grad_value(netsD, True)
 
@@ -293,7 +294,6 @@ class condGANTrainer(object):
                 # (4) Update G network: maximize log(D(G(z)))
                 ######################################################
                 # compute total loss for training G
-                step += 1
                 gen_iterations += 1
 
                 # do not need to compute gradient for Ds
