@@ -76,6 +76,11 @@ class condGANTrainer(object):
 
         feature_generator = FeaturesGenerator(text_dim=cfg.TEXT.EMBEDDING_DIM,
                                               X_dim=cfg.TEXT.EMBEDDING_DIM)
+        if cfg.FEATURE_SYNTHESIS.PRETRAINED_PATH != '':
+            state_dict = \
+                torch.load(cfg.FEATURE_SYNTHESIS.PRETRAINED_PATH,
+                           map_location=lambda storage, loc: storage)
+            feature_generator.load(state_dict)
 
         # #######################generator and discriminators############## #
         netsD = []
