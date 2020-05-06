@@ -26,6 +26,7 @@ import time
 import numpy as np
 import sys
 
+
 # ################# Text to image task############################ #
 class condGANTrainer(object):
     def __init__(self, output_dir, data_loader, n_words, ixtoword):
@@ -363,7 +364,6 @@ class condGANTrainer(object):
             im = Image.fromarray(ndarr)
             im.save(fullpath)
 
-    # TODO : change sentence_ems to syntetic_features
     def sampling(self, split_dir):
         if cfg.TRAIN.NET_G == '':
             print('Error: the path for morels is not found!')
@@ -386,6 +386,14 @@ class condGANTrainer(object):
             print('Load text encoder from:', cfg.TRAIN.NET_E)
             text_encoder = text_encoder.cuda()
             text_encoder.eval()
+
+            feature_generator = FeaturesGenerator(text_dim=cfg.TEXT.EMBEDDING_DIM,
+                                                  X_dim=cfg.TEXT.EMBEDDING_DIM)
+            state_dict = torch.load(cfg.FEATURE_SYNTHESIS.PRETRAINED_PATH,
+                                    map_location=lambda storage, loc: storage)
+            feature_generator.load(state_dict)
+            feature_generator = feature_generator.cuda()
+            feature_generator.eval()
 
             batch_size = self.batch_size
             nz = cfg.GAN.Z_DIM
@@ -421,18 +429,24 @@ class condGANTrainer(object):
                     hidden = text_encoder.init_hidden(batch_size)
                     # words_embs: batch_size x nef x seq_len
                     # sent_emb: batch_size x nef
-                    words_embs, sent_emb = text_encoder(captions, cap_lens, hidden)
-                    words_embs, sent_emb = words_embs.detach(), sent_emb.detach()
+                    with torch.no_grad():
+                        words_embs, sent_emb = text_encoder(captions, cap_lens, hidden)
                     mask = (captions == 0)
                     num_words = words_embs.size(2)
                     if mask.size(1) > num_words:
                         mask = mask[:, :num_words]
 
                     #######################################################
+                    # (1.5) Generate synthetic features
+                    z = torch.randn(self.batch_size, cfg.FEATURE_SYNTHESIS.Z_DIM)
+                    with torch.no_grad():
+                        synthetic_features = feature_generator(z, sent_emb)
+
+                    #######################################################
                     # (2) Generate fake images
                     ######################################################
                     noise.data.normal_(0, 1)
-                    fake_imgs, _, _, _ = netG(noise, sent_emb, words_embs, mask)
+                    fake_imgs, _, _, _ = netG(noise, synthetic_features, words_embs, mask)
                     for j in range(batch_size):
                         s_tmp = '%s/single/%s' % (save_dir, keys[j])
                         folder = s_tmp[:s_tmp.rfind('/')]
@@ -463,6 +477,14 @@ class condGANTrainer(object):
             print('Load text encoder from:', cfg.TRAIN.NET_E)
             text_encoder = text_encoder.cuda()
             text_encoder.eval()
+
+            feature_generator = FeaturesGenerator(text_dim=cfg.TEXT.EMBEDDING_DIM,
+                                                  X_dim=cfg.TEXT.EMBEDDING_DIM)
+            state_dict = torch.load(cfg.FEATURE_SYNTHESIS.PRETRAINED_PATH,
+                                    map_location=lambda storage, loc: storage)
+            feature_generator.load(state_dict)
+            feature_generator = feature_generator.cuda()
+            feature_generator.eval()
 
             # the path to save generated images
             if cfg.GAN.B_DCGAN:
@@ -502,13 +524,21 @@ class condGANTrainer(object):
                     hidden = text_encoder.init_hidden(batch_size)
                     # words_embs: batch_size x nef x seq_len
                     # sent_emb: batch_size x nef
-                    words_embs, sent_emb = text_encoder(captions, cap_lens, hidden)
+                    with torch.no_grad():
+                        words_embs, sent_emb = text_encoder(captions, cap_lens, hidden)
                     mask = (captions == 0)
+
+                    #######################################################
+                    # (1.5) Generate synthetic features
+                    z = torch.randn(self.batch_size, cfg.FEATURE_SYNTHESIS.Z_DIM)
+                    with torch.no_grad():
+                        synthetic_features = feature_generator(z, sent_emb)
+
                     #######################################################
                     # (2) Generate fake images
                     ######################################################
                     noise.data.normal_(0, 1)
-                    fake_imgs, attention_maps, _, _ = netG(noise, sent_emb, words_embs, mask)
+                    fake_imgs, attention_maps, _, _ = netG(noise, synthetic_features, words_embs, mask)
                     # G attention
                     cap_lens_np = cap_lens.cpu().data.numpy()
                     for j in range(batch_size):
