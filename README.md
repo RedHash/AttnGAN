@@ -40,11 +40,11 @@ So the images are now generated given input words and noise-reducing encoding of
 Synthetic features are used in F_0 model
 
 I've chosen second variant for implementation because of simplicity, and it may give 
-noticeable improvements when we use noisy texts, since noisy sentence embeddings would 
+noticeable improvements since noisy sentence embeddings would 
 be replaced with more accurate features.  
 
 My implementation works, you can launch it using 
 
 `python3 main.py --cfg cfg/bird_attn2.yml --gpu -1`
 
-<img src="it_works.png" width="640px" height="480px"/>  
+<img src="it_works.png" width="640px" height="320"/>  
